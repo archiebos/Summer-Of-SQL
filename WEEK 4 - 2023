@@ -1,0 +1,56 @@
+--We want to stack the tables on top of one another, since they have the same fields in each sheet. We can do this one of 2 ways (help):
+--Drag each table into the canvas and use a union step to stack them on top of one another
+--Use a wildcard union in the input step of one of the tables
+
+--Some of the fields aren't matching up as we'd expect, due to differences in spelling. Merge these fields together
+--Make a Joining Date field based on the Joining Day, Table Names and the year 2023
+
+--Now we want to reshape our data so we have a field for each demographic, for each new customer (help)
+--Make sure all the data types are correct for each field
+--Remove duplicates (help)
+--If a customer appears multiple times take their earliest joining date
+
+
+with CTE as(
+select *, 'August' as table_Name from pd2023_wk04_august union all
+select *, 'April' as table_Name from pd2023_wk04_april union all
+select *, 'December' as table_Name from pd2023_wk04_december union all
+select *, 'February' as table_Name from pd2023_wk04_february union all
+select *, 'January' as table_Name from pd2023_wk04_january union all
+select *, 'July' as table_Name from pd2023_wk04_july union all
+select *, 'June' as table_Name from pd2023_wk04_june union all
+select *, 'March' as table_Name from pd2023_wk04_march union all
+select *, 'May' as table_Name from pd2023_wk04_may union all
+select * , 'November' as table_Name from pd2023_wk04_november union all
+select *, 'October' as table_Name from pd2023_wk04_october union all
+select *, 'September' as table_Name from pd2023_wk04_september)
+
+, pre_pivot as (
+Select
+
+id, 
+value,
+demographiic,
+Date_from_parts(2023,DATE_PART('Month', Date(table_name, 'MMMM')), joining_day) as joining_Date
+ from CTE
+
+)
+
+Select 
+id, 
+joining_date,
+Ethnicity,
+Account_Type,
+Date_of_birth
+
+from pre_pivot
+
+pivot(Max(VALUE) for demographiic in ('Ethnicity', 'Account Type', 'Date of Birth')) As P
+(id, 
+joining_date,
+Ethnicity,
+Account_Type,
+Date_of_birth)
+
+;
+
