@@ -1,0 +1,62 @@
+
+--For the Transaction Path table:
+--Make sure field naming convention matches the other tables
+--i.e. instead of Account_From it should be Account From
+
+--For the Account Information table:
+--Make sure there are no null values in the Account Holder ID
+--Ensure there is one row per Account Holder ID
+--Joint accounts will have 2 Account Holders, we want a row for each of them
+
+--For the Account Holders table:
+--Make sure the phone numbers start with 07
+--Bring the tables together
+--Filter out cancelled transactions 
+--Filter to transactions greater than £1,000 in value 
+--Filter out Platinum accounts
+
+
+
+with Trim0 as(
+select *
+from pd2023_wk07_account_information,
+lateral split_to_table(account_holder_id, ',')
+where
+ACCOUNT_HOLDER_ID IS NOT  null)
+
+
+,  TRIM1 AS(
+Select 
+Ltrim(VALUE, ' ') AS NEW_ACCOUNT_HOLDER_ID,
+* from TRIM0)
+
+, JOIN1 AS(
+
+select
+lpad(contact_number,11,0) as Full_contact_number,
+*
+from pd2023_wk07_account_holders AS J
+INNER JOIN TRIM1
+ON J.ACCOUNT_HOLDER_ID= TRIM1.NEW_ACCOUNT_HOLDER_ID)
+
+
+
+, JOIN2 AS (
+SELECT * FROM PD2023_WK07_TRANSACTION_PATH AS J2
+INNER JOIN 
+JOIN1 ON J2.ACCOUNT_FROM=JOIN1.ACCOUNT_NUMBER)
+
+
+
+SELECT * FROM PD2023_WK07_TRANSACTION_DETAIL AS J3
+
+INNER JOIN  JOIN2 ON
+
+J3.TRANSACTION_ID=JOIN2.TRANSACTION_ID
+
+WHERE CANCELLED_ <> 'Y'
+
+AND ACCOUNT_TYPE <> 'Platinum'
+
+and J3.value>1000
+;
