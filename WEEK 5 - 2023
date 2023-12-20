@@ -1,0 +1,78 @@
+-- Reshape the data so we have 5 rows for each customer, with responses for the Mobile App and Online Interface being in separate fields on the same row
+-- Clean the question categories so they don't have the platform in from of them
+--e.g. Mobile App - Ease of Use should be simply Ease of Use
+--Exclude the Overall Ratings, these were incorrectly calculated by the system
+
+--Calculate the Average Ratings for each platform for each customer 
+--Calculate the difference in Average Rating between Mobile App and Online Interface for each customer
+--Catergorise customers as being:
+
+
+with PRE_PIV as (
+Select 
+
+Customer_ID,
+SPLIT_PART(Pivot_columns, '___', 1) as device,
+SPLIT_PART(Pivot_columns, '___', 2) as factor,
+VALUE
+
+
+from 
+(
+select * from pd2023_wk06_dsb_customer_survey
+) as src
+
+
+unpivot( 
+value for pivot_columns in (
+MOBILE_APP___EASE_OF_USE, MOBILE_APP___EASE_OF_ACCESS, MOBILE_APP___NAVIGATION, MOBILE_APP___LIKELIHOOD_TO_RECOMMEND, MOBILE_APP___OVERALL_RATING, ONLINE_INTERFACE___EASE_OF_USE, ONLINE_INTERFACE___EASE_OF_ACCESS, ONLINE_INTERFACE___NAVIGATION, ONLINE_INTERFACE___LIKELIHOOD_TO_RECOMMEND, ONLINE_INTERFACE___OVERALL_RATING
+)
+) as pvt
+)
+
+, FORMATTED_DATA AS (
+select *
+from PRE_PIV
+pivot(SUM(value) for Device in ('MOBILE_APP','ONLINE_INTERFACE')) AS pvt2
+where Factor <> 'OVERALL_RATING'
+)
+
+--Mobile App Superfans if the difference is greater than or equal to 2 in the Mobile App's favour
+--Mobile App Fans if difference >= 1
+--Online Interface Fan
+--Online Interface Superfan
+--Neutral if difference is between 0 and 1
+--Calculate the Percent of Total customers in each category, rounded to 1 decimal place
+
+,  FAN_DATA AS(
+SELECT 
+Customer_ID,
+avg("'MOBILE_APP'") AS AVG_MOBILE,
+AVG("'ONLINE_INTERFACE'") AS AVG_INTERFACE,
+
+AVG_MOBILE- AVG_INTERFACE AS DIFFERENCE,
+
+CASE
+WHEN DIFFERENCE >=2 THEN 'MOBILE SUPER FAN'
+WHEN 2> DIFFERENCE AND DIFFERENCE >=1 THEN 'MOBILE FAN'
+WHEN 1> DIFFERENCE AND DIFFERENCE>-1 THEN 'NEUTRAL'
+WHEN DIFFERENCE<=-2 THEN 'ONLINE INTERFACE SUPERFAN'
+WHEN DIFFERENCE<=-1 AND DIFFERENCE>-2 THEN 'ONLINE FAN'
+END AS FAN
+
+FROM FORMATTED_DATA
+GROUP BY CUSTOMER_ID
+)
+
+SELECT
+FAN, 
+
+ROUND((COUNT(CUSTOMER_ID)/768)*100,1)
+
+FROM FAN_DATA
+GROUP BY FAN
+
+;
+
+
+
