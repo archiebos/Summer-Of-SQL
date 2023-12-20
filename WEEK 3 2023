@@ -1,0 +1,69 @@
+--For the transactions file:
+-- Filter the transactions to just look at DSB (help)
+--These will be transactions that contain DSB in the Transaction Code field
+--Rename the values in the Online or In-person field, Online of the 1 values and In-Person for the 2 values
+--Change the date to be the quarter (help)
+--Sum the transaction values for each quarter and for each Type of Transaction (Online or In-Person) (help)
+--For the targets file:
+--Pivot the quarterly targets so we have a row for each Type of Transaction and each Quarter (help)
+ --Rename the fields
+--Remove the 'Q' from the quarter field and make the data type numeric (help)
+--Join the two datasets together (help)
+--You may need more than one join clause!
+--Remove unnecessary fields
+--Calculate the Variance to Target for each row (help)
+
+
+with CTE as(
+select
+
+--split_part(transaction_code,'-',1) as Trans_Code,
+
+case
+when ONLINE_OR_IN_PERSON=1 then 'Online'
+when online_or_in_person=2 then 'In-Person' 
+end
+as ONLINE_OR_IN_PERSON1,
+
+QUARTER(Date(TRANSACTION_DATE, 'dd/MM/yyyy hh24:mi:ss')) As Quarter1,
+
+Sum(value) as total_value
+
+
+from
+
+pd2023_wk01
+
+where split_part(transaction_code,'-',1) = 'DSB'
+
+group by ONLINE_OR_IN_PERSON1, Quarter1
+)
+
+select 
+
+online_or_in_person,
+
+total_value,
+
+total_value -  target as Variance,
+
+to_number(Trim(quarter,'Q')) As Quarter,
+
+target
+
+from pd2023_wk03_targets 
+
+unpivot(target for quarter in (Q1,Q2,Q3,Q4))
+
+
+
+inner join CTE
+
+on CTE.online_or_in_person1= pd2023_wk03_targets.online_or_in_person
+
+and CTE.Quarter1= to_number(Trim(quarter,'Q'))
+
+
+;
+
+
