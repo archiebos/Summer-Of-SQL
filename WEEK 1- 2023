@@ -1,0 +1,64 @@
+-- Split the Transaction Code to extract the letters at the start of the transaction code. These identify the bank who processes the transaction (help)
+-- Rename the new field with the Bank code 'Bank'. 
+-- Rename the values in the Online or In-person field, Online of the 1 values and In-Person for the 2 values. 
+-- Change the date to be the day of the week (help)
+--Different levels of detail are required in the outputs. You will need to sum up the values of the transactions in three ways (help):
+--1. Total Values of Transactions by each bank
+--2. Total Values by Bank, Day of the Week and Type of Transaction (Online or In-Person)
+--3. Total Values by Bank and Customer Code
+--Output each data file (help)
+
+ select
+split_part(transaction_code, '-', 1) as Bank, 
+case
+when
+ONLINE_OR_IN_PERSON= 1 then 'Online'
+when
+online_or_in_person= 2 then 'In-Person'
+end as ONLINE_OR_IN_PERSON1
+,
+
+Dayname(DATE(TRANSACTION_DATE, 'dd/MM/yyyy hh24:mi:ss')) as New_Date,
+
+*
+from pd2023_wk01
+
+;
+
+--Question 1
+SELECT 
+split_part(transaction_code, '-', 1) as Bank,
+
+SUM(VALUE) as total_value
+
+FROM pd2023_wk01
+
+GROUP BY Bank;
+
+--Question 2
+SELECT
+split_part(transaction_code, '-', 1) as Bank,
+Dayname(DATE(TRANSACTION_DATE, 'dd/MM/yyyy hh24:mi:ss')) as New_Date,
+
+case
+when
+ONLINE_OR_IN_PERSON= 1 then 'Online'
+when
+online_or_in_person= 2 then 'In-Person'
+end as TYPE,
+
+SUM(VALUE)
+
+FROM PD2023_WK01
+
+GROUP BY Bank, New_Date, TYPE;
+
+--Question 3
+SELECT
+CUSTOMER_CODE,
+split_part(transaction_code, '-', 1) as Bank, 
+SUM(VALUE)
+
+FROM PD2023_WK01
+
+GROUP BY CUSTOMER_CODE, Bank;
